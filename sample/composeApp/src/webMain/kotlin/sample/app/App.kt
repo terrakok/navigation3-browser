@@ -129,7 +129,10 @@ fun App() {
             entry<Present> { key ->
                 PresentScreen(
                     id = key.id,
-                    onBack = { backStack.removeLast() },
+                    onBack = {
+                        backStack.clear()
+                        backStack.add(Main)
+                    },
                     onOpenPresent = {
                         backStack.add(Present(it))
                     },
