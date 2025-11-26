@@ -32,7 +32,7 @@ mavenPublishing {
     pom {
         name = "navigation3-browser"
         description = "Kotlin Multiplatform library"
-        url = "github url" //todo
+        url = "https://github.com/terrakok/navigation3-browser"
 
         licenses {
             license {
@@ -43,14 +43,14 @@ mavenPublishing {
 
         developers {
             developer {
-                id = "" //todo
-                name = "" //todo
-                email = "" //todo
+                id = "terrakok"
+                name = "Konstantin Tskhovrebov"
+                email = "terrakok@gmail.com"
             }
         }
 
         scm {
-            url = "github url" //todo
+            url = "https://github.com/terrakok/navigation3-browser"
         }
     }
     if (project.hasProperty("signing.keyId")) signAllPublications()
