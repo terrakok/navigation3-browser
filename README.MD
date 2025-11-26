@@ -5,12 +5,14 @@ This miniature library provides integration between [Androidx.Navigation3](https
 ---
 
 To better understand how it works and what API exists,  
-watch the following video and answer:   
+watch the following video and answer: 
+
+### Question:
 **what screen do you expect to see when you click the back button in the browser?**
 
 ![](./media/g1.gif)
 
-### Answers
+### Answers:
 <details>
 <summary><h3>Chronological Navigation:</h3> Return to the page you just closed [PROFILE 2]</summary>
 
