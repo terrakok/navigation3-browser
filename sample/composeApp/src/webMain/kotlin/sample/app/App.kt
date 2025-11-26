@@ -130,6 +130,9 @@ fun App() {
                 PresentScreen(
                     id = key.id,
                     onBack = { backStack.removeLast() },
+                    onOpenPresent = {
+                        backStack.add(Present(it))
+                    },
                     onChangePresent = {
                         backStack.removeLast()
                         backStack.add(Present(it))
@@ -153,7 +156,7 @@ fun MainScreen(
         modifier = Modifier.fillMaxSize()
     ) {
         BasicText(
-            text = "Buy a present!",
+            text = "Select a present!",
             style = TextStyle.Default.copy(fontWeight = FontWeight.Bold, fontSize = 40.sp),
         )
         LazyColumn {
@@ -175,6 +178,7 @@ fun MainScreen(
 fun PresentScreen(
     id: Int,
     onBack: () -> Unit,
+    onOpenPresent: (Int) -> Unit,
     onChangePresent: (Int) -> Unit
 ) {
     Column(
@@ -192,7 +196,7 @@ fun PresentScreen(
         )
         Row {
             BasicText(
-                "Pay and go to the main screen",
+                "Return to the [main screen]",
                 modifier = Modifier
                     .padding(8.dp)
                     .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
@@ -201,7 +205,15 @@ fun PresentScreen(
             )
             val otherPresent = (id + 1) % PRESENTS_COUNT
             BasicText(
-                "Change to PRESENT $otherPresent",
+                "Open [PRESENT $otherPresent]",
+                modifier = Modifier
+                    .padding(8.dp)
+                    .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
+                    .clickable(onClick = { onOpenPresent(otherPresent) })
+                    .padding(8.dp)
+            )
+            BasicText(
+                "Replace the current with [PRESENT $otherPresent]",
                 modifier = Modifier
                     .padding(8.dp)
                     .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
