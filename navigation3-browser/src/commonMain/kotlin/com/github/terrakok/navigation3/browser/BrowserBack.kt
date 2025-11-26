@@ -7,7 +7,6 @@ import androidx.compose.runtime.remember
 import androidx.navigationevent.DirectNavigationEventInput
 import androidx.navigationevent.NavigationEventHistory
 import androidx.navigationevent.compose.LocalNavigationEventDispatcherOwner
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.drop
@@ -48,48 +47,46 @@ private suspend fun configureBrowserBack(
     val firstBind = BrowserHistoryIsInUse.compareAndSet(expectedValue = false, newValue = true)
     if (!firstBind) {
         val window = refBrowserWindow()
-        window.console.warn("BrowserHistory is already bound to another backstack")
+        window.console.warn("BrowserHistory has already been bound to another backstack!")
         return
     }
-    try {
-        coroutineScope {
-            val window = refBrowserWindow()
-            val appAddress = with(window.location) { origin + pathname }
-            val rootDestination = currentDestinationName().orEmpty()
-            window.history.replaceState(ROOT_ENTRY, "", appAddress + rootDestination)
+    coroutineScope {
+        val window = refBrowserWindow()
+        val appAddress = with(window.location) { origin + pathname }
+        val rootDestination = currentDestinationName().orEmpty()
+        window.history.replaceState(ROOT_ENTRY, "", appAddress + rootDestination)
 
-            //listen browser navigation events
-            launch {
-                window.popStateEvents()
-                    .map { it.state }
-                    .collect { state ->
-                        if (state == ROOT_ENTRY) {
-                            if (history.value.currentIndex > 0) {
-                                onBack()
-                            } else {
-                                window.history.go(-1)
-                            }
-                        }
-                    }
-            }
-
-            //listen backstack's changes
-            launch {
-                history
-                    .drop(1) //ignore init state
-                    .collect {
-                        val newUrl = appAddress + currentDestinationName().orEmpty()
-                        if (window.history.state == ROOT_ENTRY) {
-                            // it was browser navigation
-                            window.history.pushState(CURRENT_ENTRY, "", newUrl)
+        //listen browser navigation events
+        launch {
+            window.popStateEvents()
+                .map { it.state }
+                .collect { state ->
+                    if (state == ROOT_ENTRY) {
+                        if (history.value.currentIndex > 0) {
+                            onBack()
                         } else {
-                            // it was compose navigation
-                            window.history.replaceState(CURRENT_ENTRY, "", newUrl)
+                            window.history.go(-1)
                         }
+                    } else {
+                        window.history.replaceState(ROOT_ENTRY, "", appAddress + currentDestinationName().orEmpty())
                     }
-            }
+                }
         }
-    } catch (_: CancellationException) {
-        BrowserHistoryIsInUse.store(false)
+
+        //listen backstack's changes
+        launch {
+            history
+                .drop(1) //ignore init state
+                .collect {
+                    val newUrl = appAddress + currentDestinationName().orEmpty()
+                    if (window.history.state == ROOT_ENTRY) {
+                        // it was browser navigation
+                        window.history.pushState(CURRENT_ENTRY, "", newUrl)
+                    } else {
+                        // it was compose navigation
+                        window.history.replaceState(CURRENT_ENTRY, "", newUrl)
+                    }
+                }
+        }
     }
 }
