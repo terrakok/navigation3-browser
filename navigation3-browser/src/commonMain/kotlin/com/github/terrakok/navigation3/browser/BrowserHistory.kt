@@ -8,6 +8,52 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
+/**
+ * Binds a Compose `backStack` to the browser history for chronological (web‑style) navigation.
+ *
+ * This helper keeps the browser's URL hash and history in sync with your in‑app back stack:
+ * - When the user navigates using the browser's Back/Forward buttons, the back stack is restored
+ *   from the previously saved browser history state or, if absent, from the current URL hash.
+ * - When the in‑app back stack changes, the function updates the browser history and the URL hash
+ *   using `pushState`/`replaceState`.
+ *
+ * Usage example:
+ *
+ * ```kotlin
+ * LaunchedEffect(Unit) {
+ *     bindBackStackToBrowserHistory(
+ *         backStack = backStack,
+ *         saveItem = { key ->
+ *             when (key) {
+ *                 is Root -> buildBrowserHistoryFragment("root")
+ *                 is Profile -> buildBrowserHistoryFragment("profile", mapOf("id" to key.id.toString()))
+ *                 else -> null
+ *             }
+ *         },
+ *         restoreItem = { fragment ->
+ *             when (getBrowserHistoryFragmentName(fragment)) {
+ *                 "root" -> Root
+ *                 "profile" -> Profile(getBrowserHistoryFragmentParameters(fragment).getValue("id")!!.toInt())
+ *                 else -> null
+ *             }
+ *         }
+ *     )
+ * }
+ * ```
+ *
+ * Notes and constraints:
+ * - Only one type of Browser History can be used at a time within a process. If called more than once, a
+ *   warning is logged to `window.console` and the subsequent calls are ignored.
+ * - `saveItem` is used to serialize an item to a URL fragment (e.g. `#profile?id=42`). Return `null`
+ *   to skip an item; skipped items are not saved to browser history.
+ * - `restoreItem` must perform the inverse operation and return the back stack item for a given
+ *   fragment string. Return `null` to indicate that the fragment cannot be restored.
+ * - The function is `suspend` and should be called from a coroutine scope (e.g. inside `LaunchedEffect`).
+ *
+ * @param backStack The Compose back stack to observe and mutate.
+ * @param saveItem Converts a back stack item into a URL fragment to be stored in browser history.
+ * @param restoreItem Restores a back stack item from a URL fragment.
+ */
 @OptIn(ExperimentalAtomicApi::class)
 suspend fun <T> bindBackStackToBrowserHistory(
     backStack: SnapshotStateList<T>,

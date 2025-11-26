@@ -14,6 +14,36 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
+/**
+ * Configures browser Back button behavior for hierarchical (app‑style) navigation.
+ *
+ * Use this composable when your app navigation is hierarchical (like classic Android apps),
+ * where pressing the browser Back button should pop the in‑app back stack rather than
+ * traversing a chronological history.
+ *
+ * Usage example:
+ *
+ * ```kotlin
+ * ConfigureBrowserBack(
+ *     currentDestinationName = {
+ *         when (val key = backStack.lastOrNull()) {
+ *             is Root -> buildBrowserHistoryFragment("root")
+ *             is Profile -> buildBrowserHistoryFragment("profile", mapOf("id" to key.id.toString()))
+ *             else -> null
+ *         }
+ *     }
+ * )
+ * ```
+ *
+ * Notes and constraints:
+ * - Only one type of Browser History can be used at a time within a process. If called more than once, a
+ *   warning is logged to `window.console` and the subsequent calls are ignored.
+ * - Provide `currentDestinationName` that returns a URL hash fragment for the current destination
+ *   (use [buildBrowserHistoryFragment]).
+ *
+ * @param currentDestinationName A lambda that returns the current destination as a URL fragment
+ * (including leading `#`), or `null` if none. See [buildBrowserHistoryFragment].
+ */
 @Composable
 fun ConfigureBrowserBack(
     currentDestinationName: () -> String?,
