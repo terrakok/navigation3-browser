@@ -3,7 +3,7 @@ name: Deploy Web App
 on:
   push:
     branches:
-      - master
+      - main
 
 permissions:
   contents: write
