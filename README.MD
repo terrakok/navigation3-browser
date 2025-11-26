@@ -11,9 +11,8 @@ watch the following video and answer:
 ![](./media/g1.gif)
 
 ### Answers
-**Return to the page you just closed `[PROFILE 2]`**
 <details>
-<summary>Chronological Navigation</summary>
+<summary><h3>Chronological Navigation:</h3> Return to the page you just closed [PROFILE 2]</summary>
 
 ![](./media/g2.gif)
 
@@ -34,10 +33,8 @@ This can be very convenient, but it allows for unplanned transitions within the 
 
 </details>
 
-
-**Return to `[kotlinlang.org]`!**
 <details>
-<summary>Hierarchical Navigation</summary>
+<summary><h3>Hierarchical Navigation:</h3> Return to kotlinlang.org</summary>
 
 ![](./media/g3.gif)
 
