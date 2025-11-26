@@ -60,5 +60,8 @@ such as displaying a dialog asking if the user wants to leave the application.
 
 </details>
 
+### Demo app:
+https://terrakok.github.io/navigation3-browser/
+
 ## How to use
 `//todo`
