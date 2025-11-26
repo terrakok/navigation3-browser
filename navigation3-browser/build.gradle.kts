@@ -12,8 +12,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(libs.compose.runtime)
-            implementation(libs.compose.ui)
-            implementation(libs.androidx.nav3.ui)
+            implementation(libs.navigationevent)
         }
 
         commonTest.dependencies {
