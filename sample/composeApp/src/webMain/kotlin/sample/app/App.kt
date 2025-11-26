@@ -79,14 +79,14 @@ fun App() {
         LaunchedEffect(Unit) {
             bindBackStackToBrowserHistory(
                 backStack = backStack,
-                saveItem = { key ->
+                saveKey = { key ->
                     when (key) {
                         is Root -> buildBrowserHistoryFragment("root")
                         is Profile -> buildBrowserHistoryFragment("profile", mapOf("id" to key.id.toString()))
                         else -> null
                     }.toString()
                 },
-                restoreItem = { fragment ->
+                restoreKey = { fragment ->
                     when (getBrowserHistoryFragmentName(fragment)) {
                         "root" -> Root
                         "profile" -> Profile(

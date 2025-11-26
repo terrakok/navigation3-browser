@@ -14,8 +14,7 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
  * This helper keeps the browser's URL hash and history in sync with your in‑app back stack:
  * - When the user navigates using the browser's Back/Forward buttons, the back stack is restored
  *   from the previously saved browser history state or, if absent, from the current URL hash.
- * - When the in‑app back stack changes, the function updates the browser history and the URL hash
- *   using `pushState`/`replaceState`.
+ * - When the in‑app back stack changes, the function updates the browser history and the URL hash.
  *
  * Usage example:
  *
@@ -23,14 +22,14 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
  * LaunchedEffect(Unit) {
  *     bindBackStackToBrowserHistory(
  *         backStack = backStack,
- *         saveItem = { key ->
+ *         saveKey = { key ->
  *             when (key) {
  *                 is Root -> buildBrowserHistoryFragment("root")
  *                 is Profile -> buildBrowserHistoryFragment("profile", mapOf("id" to key.id.toString()))
  *                 else -> null
  *             }
  *         },
- *         restoreItem = { fragment ->
+ *         restoreKey = { fragment ->
  *             when (getBrowserHistoryFragmentName(fragment)) {
  *                 "root" -> Root
  *                 "profile" -> Profile(getBrowserHistoryFragmentParameters(fragment).getValue("id")!!.toInt())
@@ -44,21 +43,21 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
  * Notes and constraints:
  * - Only one type of Browser History can be used at a time within a process. If called more than once, a
  *   warning is logged to `window.console` and the subsequent calls are ignored.
- * - `saveItem` is used to serialize an item to a URL fragment (e.g. `#profile?id=42`). Return `null`
+ * - `saveKey` is used to serialize an item to a URL fragment (e.g. `#profile?id=42`). Return `null`
  *   to skip an item; skipped items are not saved to browser history.
- * - `restoreItem` must perform the inverse operation and return the back stack item for a given
+ * - `restoreKey` must perform the inverse operation and return the back stack item for a given
  *   fragment string. Return `null` to indicate that the fragment cannot be restored.
  * - The function is `suspend` and should be called from a coroutine scope (e.g. inside `LaunchedEffect`).
  *
  * @param backStack The Compose back stack to observe and mutate.
- * @param saveItem Converts a back stack item into a URL fragment to be stored in browser history.
- * @param restoreItem Restores a back stack item from a URL fragment.
+ * @param saveKey Converts a back stack item into a URL fragment to be stored in browser history.
+ * @param restoreKey Restores a back stack item from a URL fragment.
  */
 @OptIn(ExperimentalAtomicApi::class)
 suspend fun <T> bindBackStackToBrowserHistory(
     backStack: SnapshotStateList<T>,
-    saveItem: (key: T) -> String?,
-    restoreItem: (fragment: String) -> T?
+    saveKey: (key: T) -> String?,
+    restoreKey: (fragment: String) -> T?
 ) {
     val firstBind = BrowserHistoryIsInUse.compareAndSet(expectedValue = false, newValue = true)
     if (!firstBind) {
@@ -77,7 +76,7 @@ suspend fun <T> bindBackStackToBrowserHistory(
                     if (state == null) {
                         // if user manually put a new address, then there is no state
                         // we try to navigate to the url fragment
-                        restoreItem(window.location.hash)?.let { new ->
+                        restoreKey(window.location.hash)?.let { new ->
                             backStack.add(new)
                         } ?: run {
                             window.console.warn("Unable to parse url fragment: `${window.location.hash}`")
@@ -86,7 +85,7 @@ suspend fun <T> bindBackStackToBrowserHistory(
                         // navigation happened by the browser buttons
                         try {
                             val restoredBackStack = state.lines().map {
-                                restoreItem(it) ?: error("Unable to restore item: `$it`")
+                                restoreKey(it) ?: error("Unable to restore item: `$it`")
                             }
                             backStack.clear()
                             backStack.addAll(restoredBackStack)
@@ -101,7 +100,7 @@ suspend fun <T> bindBackStackToBrowserHistory(
         //listen backstack's changes and update the browser history
         launch {
             snapshotFlow { backStack.toList() }.collect { keys ->
-                val currentStack = keys.mapNotNull { saveItem(it) }
+                val currentStack = keys.mapNotNull { saveKey(it) }
                 if (currentStack.isEmpty()) return@collect
 
                 val currentDestination = currentStack.last()
