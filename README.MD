@@ -23,6 +23,15 @@ The idea is that the browser history stores a stack of all screen changes in chr
 This allows you to move back and forth between these states.  
 This can be very convenient, but it allows for unplanned transitions within the application.
 
+### Pros:
+ - close to default desktop web browser behavior
+ - supports navigation through the browser address bar
+ - there is back and forth navigation between saved states
+
+### Cons:
+ - bound to only one navigation backstack
+ - may provide unusual navigation behavior (e.g. open closed dialogs by back button)
+
 </details>
 
 
@@ -41,4 +50,16 @@ but when you click back, you can perform some action,
 such as displaying a dialog asking if the user wants to leave the application.  
 **This type of navigation is also more convenient to use from a mobile browser.**
 
+### Pros:
+ - supports any backstack nesting
+ - behaves like a regular mobile application
+ - does not allow unplanned navigation
+
+### Cons:
+ - does not support navigation through the browser address bar
+ - does not support forward navigation
+
 </details>
+
+## How to use
+`//todo`
