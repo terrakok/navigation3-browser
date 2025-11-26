@@ -3,9 +3,7 @@ package sample.app
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,16 +11,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorProducer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -36,18 +31,17 @@ import com.github.terrakok.navigation3.browser.bindBackStackToBrowserHistory
 import com.github.terrakok.navigation3.browser.buildBrowserHistoryFragment
 import com.github.terrakok.navigation3.browser.getBrowserHistoryFragmentName
 import com.github.terrakok.navigation3.browser.getBrowserHistoryFragmentParameters
-import org.jetbrains.skia.Surface
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() = ComposeViewport { App() }
 
-data object Main
+data object Root
 
-data class Present(val id: Int)
+data class Profile(val id: Int)
 
 @Composable
 fun App() {
-    val backStack = remember { mutableStateListOf<Any>(Main) }
+    val backStack = remember { mutableStateListOf<Any>(Root) }
 
     val (mode, setMode) = remember { mutableStateOf<Boolean?>(null) }
     if (mode == null) {
@@ -87,15 +81,15 @@ fun App() {
                 backStack = backStack,
                 saveItem = { key ->
                     when (key) {
-                        is Main -> buildBrowserHistoryFragment("main")
-                        is Present -> buildBrowserHistoryFragment("present", mapOf("id" to key.id.toString()))
+                        is Root -> buildBrowserHistoryFragment("root")
+                        is Profile -> buildBrowserHistoryFragment("profile", mapOf("id" to key.id.toString()))
                         else -> null
                     }.toString()
                 },
                 restoreItem = { fragment ->
                     when (getBrowserHistoryFragmentName(fragment)) {
-                        "main" -> Main
-                        "present" -> Present(
+                        "root" -> Root
+                        "profile" -> Profile(
                             getBrowserHistoryFragmentParameters(fragment).getValue("id")?.toInt()
                                 ?: error("id is required")
                         )
@@ -109,8 +103,8 @@ fun App() {
         ConfigureBrowserBack(
             currentDestinationName = {
                 when (val key = backStack.lastOrNull()) {
-                    is Main -> buildBrowserHistoryFragment("main")
-                    is Present -> buildBrowserHistoryFragment("present", mapOf("id" to key.id.toString()))
+                    is Root -> buildBrowserHistoryFragment("root")
+                    is Profile -> buildBrowserHistoryFragment("profile", mapOf("id" to key.id.toString()))
                     else -> null
                 }.toString()
             },
@@ -121,24 +115,24 @@ fun App() {
         backStack = backStack,
         onBack = { backStack.removeLastOrNull() },
         entryProvider = entryProvider {
-            entry<Main> {
-                MainScreen(
-                    onBuyPresent = { backStack.add(Present(it)) }
+            entry<Root> {
+                RootScreen(
+                    onBuyPresent = { backStack.add(Profile(it)) }
                 )
             }
-            entry<Present> { key ->
-                PresentScreen(
+            entry<Profile> { key ->
+                ProfileScreen(
                     id = key.id,
                     onBack = {
                         backStack.clear()
-                        backStack.add(Main)
+                        backStack.add(Root)
                     },
                     onOpenPresent = {
-                        backStack.add(Present(it))
+                        backStack.add(Profile(it))
                     },
                     onChangePresent = {
                         backStack.removeLast()
-                        backStack.add(Present(it))
+                        backStack.add(Profile(it))
                     }
                 )
             }
@@ -146,11 +140,11 @@ fun App() {
     )
 }
 
-private const val PRESENTS_COUNT = 3
+private const val PROFILES_COUNT = 3
 private val COLORS = listOf(Color.Blue, Color.Red, Color.Magenta)
 
 @Composable
-fun MainScreen(
+fun RootScreen(
     onBuyPresent: (id: Int) -> Unit,
 ) {
     Column(
@@ -159,13 +153,13 @@ fun MainScreen(
         modifier = Modifier.fillMaxSize()
     ) {
         BasicText(
-            text = "Select a present!",
+            text = "Select a profile!",
             style = TextStyle.Default.copy(fontWeight = FontWeight.Bold, fontSize = 40.sp),
         )
         LazyColumn {
-            items(PRESENTS_COUNT) { i ->
+            items(PROFILES_COUNT) { i ->
                 BasicText(
-                    text = "PRESENT $i",
+                    text = "PROFILE $i",
                     modifier = Modifier
                         .padding(8.dp)
                         .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
@@ -178,7 +172,7 @@ fun MainScreen(
 }
 
 @Composable
-fun PresentScreen(
+fun ProfileScreen(
     id: Int,
     onBack: () -> Unit,
     onOpenPresent: (Int) -> Unit,
@@ -190,7 +184,7 @@ fun PresentScreen(
         modifier = Modifier.fillMaxSize()
     ) {
         BasicText(
-            text = "PRESENT $id",
+            text = "PROFILE $id",
             style = TextStyle.Default.copy(color = Color.White, fontWeight = FontWeight.Bold),
             modifier = Modifier
                 .padding(16.dp)
@@ -198,16 +192,16 @@ fun PresentScreen(
                 .padding(40.dp)
         )
         BasicText(
-            "Return to the [main screen]",
+            "Return to the [root] screen",
             modifier = Modifier
                 .padding(8.dp)
                 .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
                 .clickable(onClick = onBack)
                 .padding(8.dp)
         )
-        val otherPresent = (id + 1) % PRESENTS_COUNT
+        val otherPresent = (id + 1) % PROFILES_COUNT
         BasicText(
-            "Open [PRESENT $otherPresent]",
+            "Open [PROFILE $otherPresent]",
             modifier = Modifier
                 .padding(8.dp)
                 .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
@@ -215,7 +209,7 @@ fun PresentScreen(
                 .padding(8.dp)
         )
         BasicText(
-            "Replace the current with [PRESENT $otherPresent]",
+            "Replace the current with [PROFILE $otherPresent]",
             modifier = Modifier
                 .padding(8.dp)
                 .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
