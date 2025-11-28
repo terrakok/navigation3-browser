@@ -8,6 +8,7 @@ import androidx.navigationevent.DirectNavigationEventInput
 import androidx.navigationevent.NavigationEventHistory
 import androidx.navigationevent.compose.LocalNavigationEventDispatcherOwner
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.map
@@ -93,12 +94,15 @@ private suspend fun configureBrowserBack(
                 .collect { state ->
                     if (state == ROOT_ENTRY) {
                         if (history.value.currentIndex > 0) {
-                            onBack()
+                            log("Hierarchical: [browser] reset history")
+                            window.history.go(1)
                         } else {
+                            log("Hierarchical: [browser] onExit event")
                             window.history.go(-1)
                         }
-                    } else {
-                        window.history.replaceState(ROOT_ENTRY, "", appAddress + currentDestinationName().orEmpty())
+                    } else if (state == CURRENT_ENTRY) {
+                        log("Hierarchical: [browser] onBack event")
+                        onBack()
                     }
                 }
         }
@@ -110,10 +114,10 @@ private suspend fun configureBrowserBack(
                 .collect {
                     val newUrl = appAddress + currentDestinationName().orEmpty()
                     if (window.history.state == ROOT_ENTRY) {
-                        // it was browser navigation
+                        log("Hierarchical: [app] push first state '$newUrl")
                         window.history.pushState(CURRENT_ENTRY, "", newUrl)
-                    } else {
-                        // it was compose navigation
+                    } else if (window.history.state == CURRENT_ENTRY) {
+                        log("Hierarchical: [app] replace state '$newUrl")
                         window.history.replaceState(CURRENT_ENTRY, "", newUrl)
                     }
                 }
