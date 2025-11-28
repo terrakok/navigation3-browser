@@ -68,6 +68,7 @@ https://terrakok.github.io/navigation3-browser/
 
 ## How to use
 #### Add dependency:
+Latest version: [![Maven Central](https://img.shields.io/maven-central/v/com.github.terrakok/navigation3-browser)](https://central.sonatype.com/artifact/com.github.terrakok/navigation3-browserg)
 ```kotlin
 kotlin {
     //...
@@ -75,7 +76,7 @@ kotlin {
         //...
         val webMain by getting {
             dependencies {
-                implementation("com.github.terrakok:navigation3-browser:0.1.0")
+                implementation("com.github.terrakok:navigation3-browser:[LATEST VERSION]")
             }
         }
     }
