@@ -87,6 +87,24 @@ private suspend fun configureBrowserBack(
         val rootDestination = currentDestinationName().orEmpty()
         window.history.replaceState(ROOT_ENTRY, "", appAddress + rootDestination)
 
+        //Browser tricks:
+        // CHROME:
+        // - if you call window.history.pushState (or replaceState) inside a popState callback,
+        //   then the browser stuck in INVALID state, and second click on back button will close the web app
+        // FIREFOX:
+        // - if you call window.history.pushState (or replaceState) two times in a row,
+        //   then the browser stuck in INVALID state and the web app stops working
+
+        //standard state is: current browser history state=CURRENT_ENTRY.
+        //browser BACK button click flow:
+        // - click on browser back button ->
+        // - pop state callback with ROOT_ENTRY state ->
+        // - if compose app has a backstack GO FORWARD (restore previous history state) ->
+        // - pop state callback again with CURRENT_ENTRY state ->
+        // - onBack event ->
+        // - navigation history is changed ->
+        // - window.history.replaceState with new URL
+
         //listen browser navigation events
         launch {
             window.popStateEvents()
