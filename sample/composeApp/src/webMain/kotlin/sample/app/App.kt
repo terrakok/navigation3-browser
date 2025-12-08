@@ -10,13 +10,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -62,6 +62,7 @@ fun App() {
                     modifier = Modifier
                         .padding(8.dp)
                         .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(8.dp))
                         .clickable(onClick = { setMode(true) })
                         .padding(8.dp)
                 )
@@ -70,6 +71,7 @@ fun App() {
                     modifier = Modifier
                         .padding(8.dp)
                         .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(8.dp))
                         .clickable(onClick = { setMode(false) })
                         .padding(8.dp)
                 )
@@ -86,7 +88,7 @@ fun App() {
                 }
             },
             restoreKey = { fragment ->
-                when (getBrowserHistoryFragmentName(fragment)) {
+                val item = when (getBrowserHistoryFragmentName(fragment)) {
                     "root" -> Root
                     "profile" -> Profile(
                         getBrowserHistoryFragmentParameters(fragment).getValue("id")?.toInt()
@@ -95,6 +97,7 @@ fun App() {
 
                     else -> null
                 }
+                item?.let { listOf(it) }
             }
         )
     } else {
@@ -161,6 +164,7 @@ fun RootScreen(
                     modifier = Modifier
                         .padding(8.dp)
                         .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(8.dp))
                         .clickable(onClick = { onBuyPresent(i) })
                         .padding(8.dp)
                 )
@@ -194,6 +198,7 @@ fun ProfileScreen(
             modifier = Modifier
                 .padding(8.dp)
                 .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(8.dp))
                 .clickable(onClick = onBack)
                 .padding(8.dp)
         )
@@ -203,6 +208,7 @@ fun ProfileScreen(
             modifier = Modifier
                 .padding(8.dp)
                 .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(8.dp))
                 .clickable(onClick = { onOpenPresent(otherPresent) })
                 .padding(8.dp)
         )
@@ -211,6 +217,7 @@ fun ProfileScreen(
             modifier = Modifier
                 .padding(8.dp)
                 .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(8.dp))
                 .clickable(onClick = { onChangePresent(otherPresent) })
                 .padding(8.dp)
         )
