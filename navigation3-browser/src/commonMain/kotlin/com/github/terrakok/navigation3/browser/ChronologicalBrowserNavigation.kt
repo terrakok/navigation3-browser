@@ -50,13 +50,13 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
  *
  * @param backStack The Compose back stack to observe and mutate.
  * @param saveKey Converts a back stack item into a URL fragment to be stored in browser history.
- * @param restoreKey Restores a back stack item from a URL fragment.
+ * @param restoreKey Restores back stack items from a URL fragment.
  */
 @Composable
 fun <T> ChronologicalBrowserNavigation(
     backStack: SnapshotStateList<T>,
     saveKey: (key: T) -> String?,
-    restoreKey: (fragment: String) -> T?
+    restoreKey: (fragment: String) -> List<T>?
 ) {
     LaunchedEffect(Unit) {
         bindBackStackToBrowserHistory(backStack, saveKey, restoreKey)
@@ -67,7 +67,7 @@ fun <T> ChronologicalBrowserNavigation(
 private suspend fun <T> bindBackStackToBrowserHistory(
     backStack: SnapshotStateList<T>,
     saveKey: (key: T) -> String?,
-    restoreKey: (fragment: String) -> T?
+    restoreKey: (fragment: String) -> List<T>?
 ) {
     val firstBind = BrowserHistoryIsInUse.compareAndSet(expectedValue = false, newValue = true)
     if (!firstBind) {
@@ -87,14 +87,14 @@ private suspend fun <T> bindBackStackToBrowserHistory(
                         // if user manually put a new address, then there is no state
                         // we try to navigate to the url fragment
                         restoreKey(window.location.hash)?.let { new ->
-                            backStack.add(new)
+                            backStack.addAll(new)
                         } ?: run {
                             window.console.warn("Unable to parse url fragment: `${window.location.hash}`")
                         }
                     } else {
                         // navigation happened by the browser buttons
                         try {
-                            val restoredBackStack = state.lines().map {
+                            val restoredBackStack = state.lines().flatMap {
                                 restoreKey(it) ?: error("Unable to restore item: `$it`")
                             }
                             backStack.clear()
