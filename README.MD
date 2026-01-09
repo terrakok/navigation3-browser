@@ -143,8 +143,9 @@ data class Profile(val id: Int)
 fun App() {
     val backStack = remember { mutableStateListOf<Any>(Root) }
     HierarchicalBrowserNavigation(
-        currentDestinationName = {
-            when (val key = backStack.lastOrNull()) {
+        currentDestination = remember { derivedStateOf { backStack.lastOrNull() } },
+        currentDestinationName = { key ->
+            when (key) {
                 is Root -> buildBrowserHistoryFragment("root")
                 is Profile -> buildBrowserHistoryFragment("profile", mapOf("id" to key.id.toString()))
                 else -> null

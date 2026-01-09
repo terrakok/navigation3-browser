@@ -1,18 +1,13 @@
 package com.github.terrakok.navigation3.browser
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.navigationevent.DirectNavigationEventInput
 import androidx.navigationevent.NavigationEventHistory
 import androidx.navigationevent.compose.LocalNavigationEventDispatcherOwner
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.launch
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
@@ -27,8 +22,9 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
  *
  * ```kotlin
  * HierarchicalBrowserNavigation(
- *     currentDestinationName = {
- *         when (val key = backStack.lastOrNull()) {
+ *     currentDestination = derivedStateOf { backStack.last() },
+ *     currentDestinationName = { key ->
+ *         when (key) {
  *             is Root -> buildBrowserHistoryFragment("root")
  *             is Profile -> buildBrowserHistoryFragment("profile", mapOf("id" to key.id.toString()))
  *             else -> null
@@ -43,12 +39,14 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
  * - Provide `currentDestinationName` that returns a URL hash fragment for the current destination
  *   (use [buildBrowserHistoryFragment]).
  *
+ * @param currentDestination A [State] that holds the current destination key
  * @param currentDestinationName A lambda that returns the current destination as a URL fragment
  * (including leading `#`), or `null` if none. See [buildBrowserHistoryFragment].
  */
 @Composable
-fun HierarchicalBrowserNavigation(
-    currentDestinationName: () -> String?,
+fun <T> HierarchicalBrowserNavigation(
+    currentDestination: State<T>,
+    currentDestinationName: (T) -> String?,
 ) {
     val navigationEventDispatcher = LocalNavigationEventDispatcherOwner.current?.navigationEventDispatcher
         ?: error("NavigationEventDispatcher not found.")
@@ -60,6 +58,7 @@ fun HierarchicalBrowserNavigation(
 
     LaunchedEffect(Unit) {
         configureBrowserBack(
+            currentDestination = currentDestination,
             currentDestinationName = currentDestinationName,
             history = navigationEventDispatcher.history,
             onBack = { input.backCompleted() }
@@ -71,8 +70,9 @@ private const val ROOT_ENTRY = "compose_root_entry"
 private const val CURRENT_ENTRY = "compose_current_entry"
 
 @OptIn(ExperimentalAtomicApi::class)
-private suspend fun configureBrowserBack(
-    currentDestinationName: () -> String?,
+private suspend fun <T> configureBrowserBack(
+    currentDestination: State<T>,
+    currentDestinationName: (T) -> String?,
     history: StateFlow<NavigationEventHistory>,
     onBack: () -> Unit,
 ) {
@@ -85,7 +85,7 @@ private suspend fun configureBrowserBack(
     coroutineScope {
         val window = refBrowserWindow()
         val appAddress = with(window.location) { origin + pathname }
-        val rootDestination = currentDestinationName().orEmpty()
+        val rootDestination = currentDestinationName(currentDestination.value).orEmpty()
         window.history.replaceState(ROOT_ENTRY, "", appAddress + rootDestination)
 
         //Browser tricks:
@@ -112,7 +112,7 @@ private suspend fun configureBrowserBack(
                 .map { it.state }
                 .collect { state ->
                     if (state == ROOT_ENTRY) {
-                        val isRoot = history.value.currentIndex == -1
+                        val isRoot = history.value.currentIndex < 1
                         if (!isRoot) {
                             log("Hierarchical: [browser] reset history")
                             window.history.go(1)
@@ -129,10 +129,10 @@ private suspend fun configureBrowserBack(
 
         //listen backstack's changes
         launch {
-            history
+            snapshotFlow { currentDestination.value }
                 .drop(1) //ignore init state
-                .collect {
-                    val newUrl = appAddress + currentDestinationName().orEmpty()
+                .collect { key ->
+                    val newUrl = appAddress + currentDestinationName(key).orEmpty()
                     if (window.history.state == ROOT_ENTRY) {
                         log("Hierarchical: [app] push first state '$newUrl")
                         window.history.pushState(CURRENT_ENTRY, "", newUrl)

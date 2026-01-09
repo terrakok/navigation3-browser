@@ -9,11 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -26,11 +22,7 @@ import androidx.compose.ui.window.ComposeViewport
 import androidx.compose.ui.window.Dialog
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
-import com.github.terrakok.navigation3.browser.ChronologicalBrowserNavigation
-import com.github.terrakok.navigation3.browser.HierarchicalBrowserNavigation
-import com.github.terrakok.navigation3.browser.buildBrowserHistoryFragment
-import com.github.terrakok.navigation3.browser.getBrowserHistoryFragmentName
-import com.github.terrakok.navigation3.browser.getBrowserHistoryFragmentParameters
+import com.github.terrakok.navigation3.browser.*
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() = ComposeViewport { App() }
@@ -99,8 +91,9 @@ fun App() {
         )
     } else {
         HierarchicalBrowserNavigation(
-            currentDestinationName = {
-                when (val key = backStack.lastOrNull()) {
+            currentDestination = remember { derivedStateOf { backStack.lastOrNull() } },
+            currentDestinationName = { key ->
+                when (key) {
                     is Root -> buildBrowserHistoryFragment("root")
                     is Profile -> buildBrowserHistoryFragment("profile", mapOf("id" to key.id.toString()))
                     else -> null
