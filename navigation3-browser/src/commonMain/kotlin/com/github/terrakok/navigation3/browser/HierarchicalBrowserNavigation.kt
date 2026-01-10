@@ -112,7 +112,7 @@ private suspend fun <T> configureBrowserBack(
                 .map { it.state }
                 .collect { state ->
                     if (state == ROOT_ENTRY) {
-                        val isRoot = history.value.currentIndex < 1
+                        val isRoot = history.value.currentIndex == -1 //no active NavEventHandler
                         if (!isRoot) {
                             log("Hierarchical: [browser] reset history")
                             window.history.go(1)
