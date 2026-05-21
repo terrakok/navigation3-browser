@@ -4,6 +4,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.navigation3.runtime.NavBackStack
+import androidx.navigation3.runtime.NavKey
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
@@ -63,9 +65,63 @@ fun <T> ChronologicalBrowserNavigation(
     }
 }
 
+/**
+ * Binds a Compose `backStack` to the browser history for chronological (web‑style) navigation.
+ *
+ * This helper keeps the browser's URL hash and history in sync with your in‑app back stack:
+ * - When the user navigates using the browser's Back/Forward buttons, the back stack is restored
+ *   from the previously saved browser history state or, if absent, from the current URL hash.
+ * - When the in‑app back stack changes, the function updates the browser history and the URL hash.
+ *
+ * Usage example:
+ *
+ * ```kotlin
+ * ChronologicalBrowserNavigation(
+ *     backStack = backStack,
+ *     saveKey = { key ->
+ *         when (key) {
+ *             is Root -> buildBrowserHistoryFragment("root")
+ *             is Profile -> buildBrowserHistoryFragment("profile", mapOf("id" to key.id.toString()))
+ *             else -> null
+ *         }
+ *     },
+ *     restoreKey = { fragment ->
+ *         when (getBrowserHistoryFragmentName(fragment)) {
+ *             "root" -> Root
+ *             "profile" -> Profile(getBrowserHistoryFragmentParameters(fragment).getValue("id")!!.toInt())
+ *             else -> null
+ *         }
+ *     }
+ * )
+ * ```
+ *
+ * Notes and constraints:
+ * - Only one type of Browser History can be used at a time within a process. If called more than once, a
+ *   warning is logged to `window.console` and the subsequent calls are ignored.
+ * - `saveKey` is used to serialize an item to a URL fragment (e.g. `#profile?id=42`). Return `null`
+ *   to skip an item; skipped items are not saved to browser history.
+ * - `restoreKey` must perform the inverse operation and return the back stack item for a given
+ *   fragment string. Return `null` to indicate that the fragment cannot be restored.
+ *
+ *
+ * @param backStack The Compose back stack to observe and mutate.
+ * @param saveKey Converts a back stack item into a URL fragment to be stored in browser history.
+ * @param restoreKey Restores a back stack item from a URL fragment.
+ */
+@Composable
+fun <T : NavKey> ChronologicalBrowserNavigation(
+    backStack: NavBackStack<T>,
+    saveKey: (key: T) -> String?,
+    restoreKey: (fragment: String) -> T?
+) {
+    LaunchedEffect(Unit) {
+        bindBackStackToBrowserHistory(backStack, saveKey, restoreKey)
+    }
+}
+
 @OptIn(ExperimentalAtomicApi::class)
 private suspend fun <T> bindBackStackToBrowserHistory(
-    backStack: SnapshotStateList<T>,
+    backStack: MutableList<T>,
     saveKey: (key: T) -> String?,
     restoreKey: (fragment: String) -> T?
 ) {

@@ -13,6 +13,7 @@ kotlin {
         commonMain.dependencies {
             implementation(libs.compose.runtime)
             implementation(libs.navigationevent)
+            implementation(libs.androidx.nav3.runtime)
         }
 
         commonTest.dependencies {
