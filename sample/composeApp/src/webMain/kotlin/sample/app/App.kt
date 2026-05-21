@@ -48,11 +48,13 @@ val config = SavedStateConfiguration {
     }
 }
 
+internal var defaultMode: Boolean? = null
+
 @Composable
 fun App() {
     val backStack = rememberNavBackStack(config, Root)
 
-    val (mode, setMode) = remember { mutableStateOf<Boolean?>(null) }
+    val (mode, setMode) = remember { mutableStateOf(defaultMode) }
     if (mode == null) {
         Dialog(
             onDismissRequest = {}

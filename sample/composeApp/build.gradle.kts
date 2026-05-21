@@ -23,6 +23,11 @@ kotlin {
             implementation(libs.androidx.nav3.ui)
             implementation(project(":navigation3-browser"))
         }
+
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+            implementation(libs.compose.ui.test)
+        }
     }
 }
 
