@@ -20,20 +20,37 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.ComposeViewport
 import androidx.compose.ui.window.Dialog
+import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
+import androidx.savedstate.serialization.SavedStateConfiguration
 import com.github.terrakok.navigation3.browser.*
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.modules.SerializersModule
+import kotlinx.serialization.modules.polymorphic
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() = ComposeViewport { App() }
 
-data object Root
+@Serializable
+data object Root : NavKey
 
-data class Profile(val id: Int)
+@Serializable
+data class Profile(val id: Int) : NavKey
+
+val config = SavedStateConfiguration {
+    serializersModule = SerializersModule {
+        polymorphic(NavKey::class) {
+            subclass(Root::class, Root.serializer())
+            subclass(Profile::class, Profile.serializer())
+        }
+    }
+}
 
 @Composable
 fun App() {
-    val backStack = remember { mutableStateListOf<Any>(Root) }
+    val backStack = rememberNavBackStack(config, Root)
 
     val (mode, setMode) = remember { mutableStateOf<Boolean?>(null) }
     if (mode == null) {
