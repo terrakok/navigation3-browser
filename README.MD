@@ -105,12 +105,24 @@ fun isMobileBrowser(): Boolean = js(
 
 #### Chronological Navigation:
 ```kotlin
-data object Root
-data class Profile(val id: Int)
+@Serializable
+data object Root : NavKey
+
+@Serializable
+data class Profile(val id: Int) : NavKey
+
+val config = SavedStateConfiguration {
+    serializersModule = SerializersModule {
+        polymorphic(NavKey::class) {
+            subclass(Root::class, Root.serializer())
+            subclass(Profile::class, Profile.serializer())
+        }
+    }
+}
 
 @Composable
 fun App() {
-    val backStack = remember { mutableStateListOf<Any>(Root) }
+    val backStack = rememberNavBackStack(config, Root)
     ChronologicalBrowserNavigation(
         backStack = backStack,
         saveKey = { key ->
@@ -136,12 +148,24 @@ fun App() {
 ```
 #### Hierarchical Navigation:
 ```kotlin
-data object Root
-data class Profile(val id: Int)
+@Serializable
+data object Root : NavKey
+
+@Serializable
+data class Profile(val id: Int) : NavKey
+
+val config = SavedStateConfiguration {
+    serializersModule = SerializersModule {
+        polymorphic(NavKey::class) {
+            subclass(Root::class, Root.serializer())
+            subclass(Profile::class, Profile.serializer())
+        }
+    }
+}
 
 @Composable
 fun App() {
-    val backStack = remember { mutableStateListOf<Any>(Root) }
+    val backStack = rememberNavBackStack(config, Root)
     HierarchicalBrowserNavigation(
         currentDestination = remember { derivedStateOf { backStack.lastOrNull() } },
         currentDestinationName = { key ->
