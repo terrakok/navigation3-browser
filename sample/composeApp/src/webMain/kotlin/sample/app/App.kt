@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -162,6 +163,7 @@ fun RootScreen(
         BasicText(
             text = "Select a profile!",
             style = TextStyle.Default.copy(fontWeight = FontWeight.Bold, fontSize = 40.sp),
+            modifier = Modifier.testTag("root_screen")
         )
         LazyColumn {
             items(PROFILES_COUNT) { i ->
@@ -197,6 +199,7 @@ fun ProfileScreen(
                 .padding(16.dp)
                 .background(COLORS[id])
                 .padding(40.dp)
+                .testTag("profile_screen_$id")
         )
         BasicText(
             "Return to the [root] screen",
