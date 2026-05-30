@@ -4,6 +4,7 @@ import androidx.compose.runtime.*
 import androidx.navigationevent.DirectNavigationEventInput
 import androidx.navigationevent.NavigationEventHistory
 import androidx.navigationevent.compose.LocalNavigationEventDispatcherOwner
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collect
@@ -110,7 +111,7 @@ fun HierarchicalBrowserNavigation(
 private const val ROOT_ENTRY = "compose_root_entry"
 private const val CURRENT_ENTRY = "compose_current_entry"
 
-@OptIn(ExperimentalAtomicApi::class)
+@OptIn(ExperimentalAtomicApi::class, ExperimentalCoroutinesApi::class)
 private suspend fun configureBrowserBack(
     currentDestinationName: () -> String?,
     history: StateFlow<NavigationEventHistory>,
