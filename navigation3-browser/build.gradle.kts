@@ -28,7 +28,7 @@ kotlin {
 //https://www.jetbrains.com/help/kotlin-multiplatform-dev/multiplatform-publish-libraries.html
 mavenPublishing {
     publishToMavenCentral()
-    coordinates("com.github.terrakok", "navigation3-browser", "1.0.0")
+    coordinates("com.github.terrakok", "navigation3-browser", "1.1.0")
 
     pom {
         name = "navigation3-browser"
