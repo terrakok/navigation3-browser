@@ -109,16 +109,13 @@ fun App() {
             }
         )
     } else {
-        HierarchicalBrowserNavigation(
-            currentDestination = remember { derivedStateOf { backStack.lastOrNull() } },
-            currentDestinationName = { key ->
-                when (key) {
-                    is Root -> buildBrowserHistoryFragment("root")
-                    is Profile -> buildBrowserHistoryFragment("profile", mapOf("id" to key.id.toString()))
-                    else -> null
-                }
-            },
-        )
+        HierarchicalBrowserNavigation {
+            when (val key = backStack.lastOrNull()) {
+                is Root -> buildBrowserHistoryFragment("root")
+                is Profile -> buildBrowserHistoryFragment("profile", mapOf("id" to key.id.toString()))
+                else -> null
+            }
+        }
     }
 
     NavDisplay(
