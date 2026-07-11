@@ -146,6 +146,34 @@ fun App() {
     NavDisplay(backStack) {...}
 }
 ```
+
+#### Chronological Route-based Navigation:
+```kotlin
+@Composable
+fun App() {
+    val backStack = rememberNavBackStack(config, Root)
+    ChronologicalBrowserRouteNavigation(
+        backStack = backStack,
+        saveKey = { key ->
+            when (key) {
+                is Root -> buildBrowserHistoryRoute("/root")
+                is Profile -> buildBrowserHistoryRoute("/profile/{id}", mapOf("id" to key.id.toString()))
+                else -> null
+            }
+        },
+        restoreKey = { route ->
+            RouteMatcher.match(route) {
+                pattern("/root") { Root }
+                pattern("/profile/{id}") { params ->
+                    Profile(params.getValue("id")?.toInt() ?: error("id is required"))
+                }
+            }
+        }
+    )
+    NavDisplay(backStack) {...}
+}
+```
+
 #### Hierarchical Navigation:
 ```kotlin
 @Serializable
@@ -170,6 +198,22 @@ fun App() {
         when (val key = backStack.lastOrNull()) {
             is Root -> buildBrowserHistoryFragment("root")
             is Profile -> buildBrowserHistoryFragment("profile", mapOf("id" to key.id.toString()))
+            else -> null
+        }
+    }
+    NavDisplay(backStack) {...}
+}
+```
+
+#### Hierarchical Route-based Navigation:
+```kotlin
+@Composable
+fun App() {
+    val backStack = rememberNavBackStack(config, Root)
+    HierarchicalBrowserRouteNavigation {
+        when (val key = backStack.lastOrNull()) {
+            is Root -> buildBrowserHistoryRoute("/root")
+            is Profile -> buildBrowserHistoryRoute("/profile/{id}", mapOf("id" to key.id.toString()))
             else -> null
         }
     }
