@@ -9,6 +9,7 @@ internal external interface BrowserLocation {
     val origin: String
     val pathname: String
     val hash: String
+    val search: String
 }
 
 internal external interface BrowserHistory {
