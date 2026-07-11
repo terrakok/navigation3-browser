@@ -14,7 +14,7 @@ import kotlin.test.assertEquals
 class ChronologicalNavigationTest {
     @Test
     fun simpleNavigationTest() = runComposeUiTest {
-        defaultMode = true
+        defaultMode = Mode.Chronological
         setContent { App() }
         awaitIdle()
 
