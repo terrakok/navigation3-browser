@@ -112,10 +112,158 @@ fun <T> ChronologicalBrowserNavigation(
 fun <T : NavKey> ChronologicalBrowserNavigation(
     backStack: NavBackStack<T>,
     saveKey: (key: T) -> String?,
-    restoreKey: (fragment: String) -> T?
+    restoreKey: (fragment: String) -> T?,
 ) {
     LaunchedEffect(Unit) {
         bindBackStackToBrowserHistory(backStack, saveKey, restoreKey)
+    }
+}
+
+/**
+ * Binds a Compose `backStack` to the browser history for chronological (web‑style) navigation
+ * using full URL routes (path and query).
+ *
+ * This helper keeps the browser's URL and history in sync with your in‑app back stack:
+ * - When the user navigates using the browser's Back/Forward buttons, the back stack is restored
+ *   from the previously saved browser history state or, if absent, from the current URL path.
+ * - When the in‑app back stack changes, the function updates the browser history and the URL path.
+ *
+ * Usage example:
+ *
+ * ```kotlin
+ * ChronologicalBrowserRouteNavigation(
+ *     backStack = backStack,
+ *     saveKey = { key ->
+ *         when (key) {
+ *             is Root -> buildBrowserHistoryRoute("/root")
+ *             is Profile -> buildBrowserHistoryRoute("/profile/{id}", mapOf("id" to key.id.toString()))
+ *             else -> null
+ *         }
+ *     },
+ *     restoreKey = { route ->
+ *         when {
+ *             browserHistoryRouteMatches("/root", route) -> Root
+ *             matchBrowserHistoryRoute("/profile/{id}", route) != null -> {
+ *                 val params = getBrowserHistoryRouteParameters("/profile/{id}", route)
+ *                 Profile(params.getValue("id")!!.toInt())
+ *             }
+ *             else -> null
+ *         }
+ *     }
+ * )
+ * ```
+ *
+ * Alternative usage with `RouteMatcher`:
+ *
+ * ```kotlin
+ * ChronologicalBrowserRouteNavigation(
+ *     backStack = backStack,
+ *     saveKey = { /* ... */ },
+ *     restoreKey = { route ->
+ *         RouteMatcher.match(route) {
+ *             pattern("/root") { Root }
+ *             pattern("/profile/{id}") { params ->
+ *                 Profile(params.getValue("id")!!.toInt())
+ *             }
+ *         }
+ *     }
+ * )
+ * ```
+ *
+ * Notes and constraints:
+ * - Only one type of Browser History can be used at a time within a process. If called more than once, a
+ *   warning is logged to `window.console` and the subsequent calls are ignored.
+ * - `saveKey` is used to serialize an item to a URL path (e.g. `/profile/42`). Return `null`
+ *   to skip an item; skipped items are not saved to browser history.
+ * - `restoreKey` must perform the inverse operation and return the back stack item for a given
+ *   route string. Return `null` to indicate that the route cannot be restored.
+ *
+ * @param backStack The Compose back stack to observe and mutate.
+ * @param saveKey Converts a back stack item into a URL route to be stored in browser history.
+ * @param restoreKey Restores a back stack item from a URL route.
+ */
+@Composable
+fun <T> ChronologicalBrowserRouteNavigation(
+    backStack: SnapshotStateList<T>,
+    saveKey: (key: T) -> String?,
+    restoreKey: (route: String) -> T?
+) {
+    LaunchedEffect(Unit) {
+        bindBackStackToBrowserHistory(backStack, saveKey, restoreKey, isRouteBased = true)
+    }
+}
+
+/**
+ * Binds a Compose `backStack` to the browser history for chronological (web‑style) navigation
+ * using full URL routes (path and query).
+ *
+ * This helper keeps the browser's URL and history in sync with your in‑app back stack:
+ * - When the user navigates using the browser's Back/Forward buttons, the back stack is restored
+ *   from the previously saved browser history state or, if absent, from the current URL path.
+ * - When the in‑app back stack changes, the function updates the browser history and the URL path.
+ *
+ * Usage example:
+ *
+ * ```kotlin
+ * ChronologicalBrowserRouteNavigation(
+ *     backStack = backStack,
+ *     saveKey = { key ->
+ *         when (key) {
+ *             is Root -> buildBrowserHistoryRoute("/root")
+ *             is Profile -> buildBrowserHistoryRoute("/profile/{id}", mapOf("id" to key.id.toString()))
+ *             else -> null
+ *         }
+ *     },
+ *     restoreKey = { route ->
+ *         when {
+ *             browserHistoryRouteMatches("/root", route) -> Root
+ *             matchBrowserHistoryRoute("/profile/{id}", route) != null -> {
+ *                 val params = getBrowserHistoryRouteParameters("/profile/{id}", route)
+ *                 Profile(params.getValue("id")!!.toInt())
+ *             }
+ *             else -> null
+ *         }
+ *     }
+ * )
+ * ```
+ *
+ * Alternative usage with `RouteMatcher`:
+ *
+ * ```kotlin
+ * ChronologicalBrowserRouteNavigation(
+ *     backStack = backStack,
+ *     saveKey = { /* ... */ },
+ *     restoreKey = { route ->
+ *         RouteMatcher.match(route) {
+ *             pattern("/root") { Root }
+ *             pattern("/profile/{id}") { params ->
+ *                 Profile(params.getValue("id")!!.toInt())
+ *             }
+ *         }
+ *     }
+ * )
+ * ```
+ *
+ * Notes and constraints:
+ * - Only one type of Browser History can be used at a time within a process. If called more than once, a
+ *   warning is logged to `window.console` and the subsequent calls are ignored.
+ * - `saveKey` is used to serialize an item to a URL path (e.g. `/profile/42`). Return `null`
+ *   to skip an item; skipped items are not saved to browser history.
+ * - `restoreKey` must perform the inverse operation and return the back stack item for a given
+ *   route string. Return `null` to indicate that the route cannot be restored.
+ *
+ * @param backStack The Compose back stack to observe and mutate.
+ * @param saveKey Converts a back stack item into a URL route to be stored in browser history.
+ * @param restoreKey Restores a back stack item from a URL route.
+ */
+@Composable
+fun <T : NavKey> ChronologicalBrowserRouteNavigation(
+    backStack: NavBackStack<T>,
+    saveKey: (key: T) -> String?,
+    restoreKey: (route: String) -> T?,
+) {
+    LaunchedEffect(Unit) {
+        bindBackStackToBrowserHistory(backStack, saveKey, restoreKey, isRouteBased = true)
     }
 }
 
@@ -123,7 +271,8 @@ fun <T : NavKey> ChronologicalBrowserNavigation(
 private suspend fun <T> bindBackStackToBrowserHistory(
     backStack: MutableList<T>,
     saveKey: (key: T) -> String?,
-    restoreKey: (fragment: String) -> T?
+    restoreKey: (fragment: String) -> T?,
+    isRouteBased: Boolean = false,
 ) {
     val firstBind = BrowserHistoryIsInUse.compareAndSet(expectedValue = false, newValue = true)
     if (!firstBind) {
@@ -141,11 +290,17 @@ private suspend fun <T> bindBackStackToBrowserHistory(
                 .collect { state ->
                     if (state == null) {
                         // if user manually put a new address, then there is no state
-                        // we try to navigate to the url fragment
-                        restoreKey(window.location.hash)?.let { new ->
+                        // we try to navigate to the url fragment or path + search
+                        restoreKey(
+                            if (isRouteBased) window.location.pathname + window.location.search
+                            else window.location.hash
+                        )?.let { new ->
                             backStack.add(new)
                         } ?: run {
-                            window.console.warn("Unable to parse url fragment: `${window.location.hash}`")
+                            val urlPart =
+                                if (isRouteBased) window.location.pathname + window.location.search
+                                else window.location.hash
+                            window.console.warn("Unable to parse url: `$urlPart`")
                         }
                     } else {
                         // navigation happened by the browser buttons
@@ -172,7 +327,9 @@ private suspend fun <T> bindBackStackToBrowserHistory(
                 val currentDestination = currentStack.last()
                 val currentStackString = currentStack.joinToString("\n")
 
-                val appAddress = with(window.location) { origin + pathname }
+                val appAddress = with(window.location) {
+                    if (isRouteBased) origin else origin + pathname
+                }
                 val currentBrowserHistoryState = window.history.state
 
                 when (currentBrowserHistoryState) {
