@@ -1,15 +1,16 @@
 package com.github.terrakok.navigation3.browser
 
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
+import androidx.compose.runtime.remember
 import androidx.navigationevent.DirectNavigationEventInput
 import androidx.navigationevent.NavigationEventHistory
 import androidx.navigationevent.compose.LocalNavigationEventDispatcherOwner
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.emptyFlow
@@ -91,8 +92,9 @@ fun <T> HierarchicalBrowserNavigation(
 fun HierarchicalBrowserNavigation(
     currentDestinationName: () -> String? = { null }
 ) {
-    val navigationEventDispatcher = LocalNavigationEventDispatcherOwner.current?.navigationEventDispatcher
-        ?: error("NavigationEventDispatcher not found.")
+    val navigationEventDispatcher =
+        LocalNavigationEventDispatcherOwner.current?.navigationEventDispatcher
+            ?: error("NavigationEventDispatcher not found.")
     val input = remember { DirectNavigationEventInput() }
     DisposableEffect(navigationEventDispatcher) {
         navigationEventDispatcher.addInput(input)
@@ -108,6 +110,58 @@ fun HierarchicalBrowserNavigation(
     }
 }
 
+/**
+ * Configures browser Back button behavior for hierarchical (app‑style) navigation
+ * using full URL routes (path and query).
+ *
+ * Use this composable when your app navigation is hierarchical (like classic Android apps),
+ * where pressing the browser Back button should pop the in‑app back stack rather than
+ * traversing a chronological history.
+ *
+ * Usage example:
+ *
+ * ```kotlin
+ * HierarchicalBrowserRouteNavigation {
+ *     when (val key = backStack.lastOrNull()) {
+ *         is Root -> buildBrowserHistoryRoute("/root")
+ *         is Profile -> buildBrowserHistoryRoute("/profile/{id}", mapOf("id" to key.id.toString()))
+ *         else -> null
+ *     }
+ * }
+ * ```
+ *
+ * Notes and constraints:
+ * - Only one type of Browser History can be used at a time within a process. If called more than once, a
+ *   warning is logged to `window.console` and the subsequent calls are ignored.
+ * - Provide `currentDestinationName` that returns a URL route for the current destination
+ *   (use [buildBrowserHistoryRoute]).
+ *
+ * @param currentDestinationName An optional lambda that returns the current destination as a URL route,
+ * or `null` if none. See [buildBrowserHistoryRoute].
+ */
+@Composable
+fun HierarchicalBrowserRouteNavigation(
+    currentDestinationName: () -> String? = { null }
+) {
+    val navigationEventDispatcher =
+        LocalNavigationEventDispatcherOwner.current?.navigationEventDispatcher
+            ?: error("NavigationEventDispatcher not found.")
+    val input = remember { DirectNavigationEventInput() }
+    DisposableEffect(navigationEventDispatcher) {
+        navigationEventDispatcher.addInput(input)
+        onDispose { navigationEventDispatcher.removeInput(input) }
+    }
+
+    LaunchedEffect(Unit) {
+        configureBrowserBack(
+            currentDestinationName = currentDestinationName,
+            history = navigationEventDispatcher.history,
+            onBack = { input.backCompleted() },
+            isRouteBased = true,
+        )
+    }
+}
+
 private const val ROOT_ENTRY = "compose_root_entry"
 private const val CURRENT_ENTRY = "compose_current_entry"
 
@@ -116,6 +170,7 @@ private suspend fun configureBrowserBack(
     currentDestinationName: () -> String?,
     history: StateFlow<NavigationEventHistory>,
     onBack: () -> Unit,
+    isRouteBased: Boolean = false,
 ) {
     val firstBind = BrowserHistoryIsInUse.compareAndSet(expectedValue = false, newValue = true)
     if (!firstBind) {
@@ -125,7 +180,9 @@ private suspend fun configureBrowserBack(
     }
     coroutineScope {
         val window = refBrowserWindow()
-        val appAddress = with(window.location) { origin + pathname }
+        val appAddress = with(window.location) {
+            if (isRouteBased) origin else origin + pathname
+        }
         val rootDestination = currentDestinationName().orEmpty()
         window.history.replaceState(ROOT_ENTRY, "", appAddress + rootDestination)
 

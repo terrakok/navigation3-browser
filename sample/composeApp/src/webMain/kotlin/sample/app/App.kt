@@ -49,72 +49,136 @@ val config = SavedStateConfiguration {
     }
 }
 
-internal var defaultMode: Boolean? = null
+enum class Mode {
+    None, Chronological, ChronologicalRoute, Hierarchical, HierarchicalRoute
+}
+
+internal var defaultMode: Mode = Mode.None
 
 @Composable
 fun App() {
     val backStack = rememberNavBackStack(config, Root)
 
     val (mode, setMode) = remember { mutableStateOf(defaultMode) }
-    if (mode == null) {
-        Dialog(
-            onDismissRequest = {}
-        ) {
-            Column(
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.background(Color.White, shape = RoundedCornerShape(16.dp)).padding(16.dp)
+    when (mode) {
+        Mode.None -> {
+            Dialog(
+                onDismissRequest = {}
             ) {
-                BasicText(
-                    text = "Select navigation mode:",
-                    style = TextStyle.Default.copy(fontWeight = FontWeight.Bold, fontSize = 20.sp),
-                )
-                BasicText(
-                    text = "Chronological (classic web) navigation",
-                    modifier = Modifier
-                        .padding(8.dp)
-                        .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
-                        .clickable(onClick = { setMode(true) })
-                        .padding(8.dp)
-                )
-                BasicText(
-                    text = "Hierarchical (classic android app) navigation",
-                    modifier = Modifier
-                        .padding(8.dp)
-                        .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
-                        .clickable(onClick = { setMode(false) })
-                        .padding(8.dp)
-                )
+                Column(
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.background(Color.White, shape = RoundedCornerShape(16.dp)).padding(16.dp)
+                ) {
+                    BasicText(
+                        text = "Select navigation mode:",
+                        style = TextStyle.Default.copy(fontWeight = FontWeight.Bold, fontSize = 20.sp),
+                    )
+                    BasicText(
+                        text = "Chronological (classic web) navigation",
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
+                            .clickable(onClick = { setMode(Mode.Chronological) })
+                            .padding(8.dp)
+                    )
+                    BasicText(
+                        text = "Chronological (classic web) route navigation",
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
+                            .clickable(onClick = { setMode(Mode.ChronologicalRoute) })
+                            .padding(8.dp)
+                    )
+                    BasicText(
+                        text = "Hierarchical (classic android app) navigation",
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
+                            .clickable(onClick = { setMode(Mode.Hierarchical) })
+                            .padding(8.dp)
+                    )
+                    BasicText(
+                        text = "Hierarchical (classic android app) route navigation",
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
+                            .clickable(onClick = { setMode(Mode.HierarchicalRoute) })
+                            .padding(8.dp)
+                    )
+                }
             }
         }
-    } else if (mode) {
-        ChronologicalBrowserNavigation(
-            backStack = backStack,
-            saveKey = { key ->
-                when (key) {
+
+        Mode.Chronological -> {
+            ChronologicalBrowserNavigation(
+                backStack = backStack,
+                saveKey = { key ->
+                    when (key) {
+                        is Root -> buildBrowserHistoryFragment("root")
+                        is Profile -> buildBrowserHistoryFragment("profile", mapOf("id" to key.id.toString()))
+                        else -> null
+                    }
+                },
+                restoreKey = { fragment ->
+                    when (getBrowserHistoryFragmentName(fragment)) {
+                        "root" -> Root
+                        "profile" -> Profile(
+                            getBrowserHistoryFragmentParameters(fragment).getValue("id")?.toInt()
+                                ?: error("id is required")
+                        )
+
+                        else -> null
+                    }
+                }
+            )
+        }
+
+        Mode.Hierarchical -> {
+            HierarchicalBrowserNavigation {
+                when (val key = backStack.lastOrNull()) {
                     is Root -> buildBrowserHistoryFragment("root")
                     is Profile -> buildBrowserHistoryFragment("profile", mapOf("id" to key.id.toString()))
                     else -> null
                 }
-            },
-            restoreKey = { fragment ->
-                when (getBrowserHistoryFragmentName(fragment)) {
-                    "root" -> Root
-                    "profile" -> Profile(
-                        getBrowserHistoryFragmentParameters(fragment).getValue("id")?.toInt()
-                            ?: error("id is required")
+            }
+        }
+
+        Mode.ChronologicalRoute -> {
+            ChronologicalBrowserRouteNavigation(
+                backStack = backStack,
+                saveKey = { key ->
+                    when (key) {
+                        is Root -> buildBrowserHistoryRoute("root")
+                        is Profile -> buildBrowserHistoryRoute(
+                            pattern = "profile/{id}", parameters = mapOf("id" to key.id.toString())
+                        )
+
+                        else -> null
+                    }
+                },
+                restoreKey = { route ->
+                    RouteMatcher.match(route) {
+                        pattern("root") { Root }
+                        pattern("profile/{id}") { params ->
+                            val id = params.getValue("id")?.toInt() ?: error("id is required")
+                            Profile(id)
+                        }
+                    }
+                }
+            )
+        }
+
+        Mode.HierarchicalRoute -> {
+            HierarchicalBrowserRouteNavigation {
+                when (val key = backStack.lastOrNull()) {
+                    is Root -> buildBrowserHistoryRoute("root")
+                    is Profile -> buildBrowserHistoryRoute(
+                        pattern = "profile?id={id}", parameters = mapOf("id" to key.id.toString())
                     )
 
                     else -> null
                 }
-            }
-        )
-    } else {
-        HierarchicalBrowserNavigation {
-            when (val key = backStack.lastOrNull()) {
-                is Root -> buildBrowserHistoryFragment("root")
-                is Profile -> buildBrowserHistoryFragment("profile", mapOf("id" to key.id.toString()))
-                else -> null
             }
         }
     }

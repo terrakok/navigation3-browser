@@ -10,7 +10,7 @@ import kotlin.test.assertEquals
 class HierarchicalNavigationTest {
     @Test
     fun simpleNavigationTest() = runComposeUiTest {
-        defaultMode = false
+        defaultMode = Mode.Hierarchical
         setContent { App() }
         awaitIdle()
 
