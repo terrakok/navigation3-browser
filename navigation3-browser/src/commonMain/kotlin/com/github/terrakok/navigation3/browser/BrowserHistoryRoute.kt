@@ -3,11 +3,13 @@ package com.github.terrakok.navigation3.browser
 /**
  * Represents a matched route with its parameters.
  *
- * @property route The original route pattern.
+ * @property route The original route.
+ * @property pattern The route pattern.
  * @property parameters A map of parameter names to their extracted values.
  */
 data class BrowserHistoryRouteMatch(
     val route: String,
+    val pattern: String,
     val parameters: Map<String, String?>
 )
 
@@ -71,13 +73,18 @@ fun buildBrowserHistoryRoute(
  * If the path matches the pattern, a [BrowserHistoryRouteMatch] is returned containing the extracted parameters.
  * Path segments and query parameters are decoded before matching.
  *
+ * All query parameters from the [path] are automatically included in the [BrowserHistoryRouteMatch.parameters] map.
+ *
  * Example:
- * `matchBrowserHistoryRoute("/user/{id}", "/user/42")` → `BrowserHistoryRouteMatch("/user/{id}", mapOf("id" to "42"))`
+ * - `matchBrowserHistoryRoute("/user/{id}", "/user/42?tab=info")`
+ *   returns `BrowserHistoryRouteMatch("/user/{id}", mapOf("id" to "42", "tab" to "info"))`
+ * - `matchBrowserHistoryRoute("/view/*", "/view/dashboard/results")`
+ *   returns `BrowserHistoryRouteMatch("/view/*", emptyMap())`
  *
  * @param pattern The route pattern to match against.
  * @param path The actual URL path to match.
  * @return A [BrowserHistoryRouteMatch] if successful, or `null` otherwise.
- */
+ */*/*/
 fun matchBrowserHistoryRoute(
     pattern: String,
     path: String
@@ -90,42 +97,76 @@ fun matchBrowserHistoryRoute(
         it[0] to it.getOrNull(1)
     }
 
-    val patternSegments = patternPath.trim('/').split('/').filter { it.isNotEmpty() }
-    val pathSegments = actualPath.trim('/').split('/').filter { it.isNotEmpty() }
+    val patternSegments = patternPath
+        .trim('/')
+        .split('/')
+        .filter { it.isNotEmpty() }
 
-    if (patternSegments.size != pathSegments.size) {
-        return null
-    }
+    val pathSegments = actualPath
+        .trim('/')
+        .split('/')
+        .filter { it.isNotEmpty() }
 
-    val params = mutableMapOf<String, String>()
+    val params = mutableMapOf<String, String?>()
 
-    // Match path
-    for (i in patternSegments.indices) {
-        val patternSegment = patternSegments[i]
-        val pathSegment = decodeURIComponent(pathSegments[i])
+    var patternIndex = 0
+    var pathIndex = 0
 
-        if (patternSegment.isParameter()) {
-            params[patternSegment.parameterName()] = pathSegment
-        } else if (patternSegment != pathSegment) {
-            return null
+    while (patternIndex < patternSegments.size) {
+        val patternSegment = patternSegments[patternIndex]
+
+        when {
+            // Wildcard logic
+            patternSegment == "*" -> {
+                // If it's the last segment in pattern, it's a catch-all
+                if (patternIndex == patternSegments.size - 1) {
+                    pathIndex = pathSegments.size
+                    patternIndex = patternSegments.size
+                    break
+                } else {
+                    // Otherwise it matches exactly one segment
+                    if (pathIndex >= pathSegments.size) return null
+                }
+            }
+
+            pathIndex >= pathSegments.size -> {
+                return null
+            }
+
+            patternSegment.isParameter() -> {
+                params[patternSegment.parameterName()] =
+                    decodeURIComponent(pathSegments[pathIndex])
+            }
+
+            patternSegment != decodeURIComponent(pathSegments[pathIndex]) -> {
+                return null
+            }
         }
+
+        patternIndex++
+        pathIndex++
     }
 
-    // Match query
-    val patternQueryMap = parseQuery(patternQuery)
-    val actualQueryMap = parseQuery(actualQuery)
+    if (patternIndex != patternSegments.size || pathIndex != pathSegments.size)
+        return null
 
+    // Parse and add all query parameters from the actual URL
+    val actualQueryMap = parseQuery(actualQuery)
+    params.putAll(actualQueryMap)
+
+    // Validate parameters explicitly defined in the pattern
+    val patternQueryMap = parseQuery(patternQuery)
     for ((key, expectedValue) in patternQueryMap) {
         val actualValue = actualQueryMap[key] ?: return null
 
-        if (expectedValue.isParameter()) {
+        if (expectedValue != null && expectedValue.isParameter()) {
             params[expectedValue.parameterName()] = actualValue
         } else if (expectedValue != actualValue) {
             return null
         }
     }
 
-    return BrowserHistoryRouteMatch(pattern, params)
+    return BrowserHistoryRouteMatch(path, pattern, params)
 }
 
 /**
@@ -168,14 +209,16 @@ fun getBrowserHistoryRouteParameters(
 ): Map<String, String?> =
     matchBrowserHistoryRoute(pattern, path)?.parameters.orEmpty()
 
-private fun parseQuery(query: String?): Map<String, String> {
+private fun parseQuery(query: String?): Map<String, String?> {
     if (query.isNullOrEmpty()) return emptyMap()
 
     return query.split("&")
         .filter { it.isNotEmpty() }
         .associate { pair ->
-            val (key, value) = pair.split("=", limit = 2)
-            decodeURIComponent(key) to decodeURIComponent(value)
+            val split = pair.split("=", limit = 2)
+            val key = decodeURIComponent(split[0])
+            val value = split.getOrNull(1)?.let { decodeURIComponent(it) }
+            key to value
         }
 }
 
